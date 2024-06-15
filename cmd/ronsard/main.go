@@ -55,6 +55,10 @@ func main() {
 		return
 	}
 
+	if os.Getenv("RONSARD_DEBUG") != "" {
+		fmt.Println(qbeIL)
+	}
+
 	// Use a buffer to hold the assembly code produced by QBE
 	var asmBuffer bytes.Buffer
 

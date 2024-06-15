@@ -3,13 +3,13 @@ package qbe
 import (
 	"fmt"
 	"ronsard/internal/parser"
-	"strings"
 )
 
 type QBEGenerator struct {
-	ast   *parser.Node
-	code  strings.Builder
-	count int
+	ast       *parser.Node
+	code      string
+	count     int
+	dataCount int
 }
 
 func NewQBEGenerator(ast *parser.Node) *QBEGenerator {
@@ -25,15 +25,14 @@ func (g *QBEGenerator) Generate() (string, error) {
 		return "", err
 	}
 	g.emitPostamble() // Make sure to call this to add the closing part
-	return g.code.String(), nil
+	return g.code, nil
 }
 
 func (g *QBEGenerator) emitPreamble() {
-	g.code.WriteString(`
-data $str = { b "Bonjour!", b 0 }
+	g.code += `
 export function w $main() {
 @start
-`)
+`
 }
 
 func (g *QBEGenerator) emitNode(node *parser.Node) error {
@@ -46,8 +45,9 @@ func (g *QBEGenerator) emitNode(node *parser.Node) error {
 		}
 	case parser.STRING_EXPR:
 		g.count++
-		g.code.WriteString(fmt.Sprintf("%%r%d =l add 0, $str\n", g.count))
-		g.code.WriteString(fmt.Sprintf("%%u%d =w call $puts(l %%r%d)\n", g.count, g.count))
+		g.code = fmt.Sprintf("data $data_%d = { b %s, b 0 }\n", g.dataCount, node.Value) + g.code
+		g.code += fmt.Sprintf("%%r%d =l add 0, $data_%d\n", g.count, g.dataCount)
+		g.code += fmt.Sprintf("%%u%d =w call $puts(l %%r%d)\n", g.count, g.count)
 	default:
 		return fmt.Errorf("unhandled node type: %v", node.Type)
 	}
@@ -55,5 +55,5 @@ func (g *QBEGenerator) emitNode(node *parser.Node) error {
 }
 
 func (g *QBEGenerator) emitPostamble() {
-	g.code.WriteString("ret 0\n}\n")
+	g.code += "ret 0\n}\n"
 }
